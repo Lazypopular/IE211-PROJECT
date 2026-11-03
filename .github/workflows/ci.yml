@@ -21,7 +21,7 @@ concurrency:
 
 jobs:
   validate:
-    name: Code Quality & Calculation Engine Tests
+    name: Code Quality & Backend Unit Tests
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -29,18 +29,35 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Validate Core Application Structure
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Dependencies
         run: |
-          echo "Verifying file integrity..."
-          test -f index.html || exit 1
-          test -f src/css/style.css || exit 1
-          test -f src/js/app.js || exit 1
-          test -f src/js/services/calculationService.js || exit 1
-          test -f src/js/config/tariffs.js || exit 1
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Validate File Integrity
+        run: |
+          echo "Verifying project structure..."
+          test -f app.py || exit 1
+          test -f run.bat || exit 1
+          test -f templates/index.html || exit 1
+          test -f static/css/style.css || exit 1
+          test -f static/js/app.js || exit 1
+          test -f static/js/services/calculationService.js || exit 1
+          test -f static/js/services/analyticsService.js || exit 1
+          test -f static/js/services/storageService.js || exit 1
           echo "All core files are present and verified."
 
+      - name: Run Backend Unit Tests
+        run: |
+          python -m unittest discover -s tests -v
+
   deploy:
-    name: Deploy to GitHub Pages
+    name: Deploy Static Preview to GitHub Pages
     needs: validate
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     environment:
