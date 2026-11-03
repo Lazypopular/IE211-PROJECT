@@ -26,8 +26,8 @@ export const DEFAULT_TARIFF_SETTINGS = {
 export function getStoredAppliances() {
     try {
         const raw = localStorage.getItem(STORAGE_KEYS.APPLIANCES);
-        if (!raw) {
-            // โหลดข้อมูลตัวอย่างเริ่มต้นหากยังไม่มีข้อมูล
+        // โหลดข้อมูลตัวอย่างเฉพาะครั้งแรกสุดที่เปิดเว็บเท่านั้น (เมื่อคีย์ยังไม่เคยถูกสร้าง)
+        if (raw === null) {
             saveStoredAppliances(INITIAL_DEMO_APPLIANCES);
             return [...INITIAL_DEMO_APPLIANCES];
         }
@@ -35,7 +35,7 @@ export function getStoredAppliances() {
         return Array.isArray(parsed) ? parsed : [];
     } catch (e) {
         console.error('Failed to load appliances from localStorage', e);
-        return [...INITIAL_DEMO_APPLIANCES];
+        return [];
     }
 }
 
@@ -45,12 +45,20 @@ export function getStoredAppliances() {
  */
 export function saveStoredAppliances(appliances) {
     try {
-        localStorage.setItem(STORAGE_KEYS.APPLIANCES, JSON.stringify(appliances));
+        localStorage.setItem(STORAGE_KEYS.APPLIANCES, JSON.stringify(appliances || []));
         return true;
     } catch (e) {
         console.error('Failed to save appliances to localStorage', e);
         return false;
     }
+}
+
+/**
+ * ล้างรายการเครื่องใช้ไฟฟ้าทั้งหมดในระบบ (Reset Device to Empty)
+ */
+export function clearAllAppliances() {
+    saveStoredAppliances([]);
+    return [];
 }
 
 /**
@@ -91,7 +99,7 @@ export function saveStoredTariffSettings(settings) {
 export function exportDataAsJSON() {
     const data = {
         exportedAt: new Date().toISOString(),
-        version: '1.0.0',
+        version: '2.0.0',
         project: 'Smart Energy Management System (IE211)',
         tariffSettings: getStoredTariffSettings(),
         appliances: getStoredAppliances()
@@ -167,9 +175,9 @@ export function importDataFromJSON(file) {
 }
 
 /**
- * รีเซ็ตข้อมูลกลับเป็นค่าเริ่มต้น
+ * รีเซ็ตข้อมูลกลับเป็นค่าเริ่มต้น (Seed Demo Data)
  */
 export function resetToDemoData() {
-    saveStoredAppliances(INITIAL_DEMO_APPLIANCES);
+    saveStoredAppliances([...INITIAL_DEMO_APPLIANCES]);
     saveStoredTariffSettings(DEFAULT_TARIFF_SETTINGS);
 }

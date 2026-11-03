@@ -6,6 +6,7 @@
 import {
     getStoredAppliances,
     saveStoredAppliances,
+    clearAllAppliances,
     getStoredTariffSettings,
     saveStoredTariffSettings,
     exportDataAsJSON,
@@ -102,8 +103,24 @@ function handleDeleteAppliance(id) {
     const item = appliances.find(a => a.id === id);
     appliances = appliances.filter(a => a.id !== id);
     saveStoredAppliances(appliances);
-    showToast(`ลบ "${item ? item.name : 'อุปกรณ์'}" แล้ว`, 'info');
+    showToast(`ลบ "${item ? item.name : 'อุปกรณ์'}" แล้ว (คงเหลือ ${appliances.length} รายการ)`, 'info');
     refreshApp();
+}
+
+/**
+ * ล้างเครื่องใช้ไฟฟ้าทั้งหมดในระบบ (Reset Devices to Empty)
+ */
+function handleClearAllAppliances() {
+    if (appliances.length === 0) {
+        showToast('ไม่มีรายการเครื่องใช้ไฟฟ้าให้ลบ', 'warning');
+        return;
+    }
+
+    if (confirm('⚠️ คุณต้องการลบรายการเครื่องใช้ไฟฟ้าทั้งหมดในระบบให้เป็น 0 หรือไม่? (สามารถกดปุ่ม "รีเซ็ตตัวอย่าง" เพื่อเรียกข้อมูลกลับมาได้ภายหลัง)')) {
+        appliances = clearAllAppliances();
+        refreshApp();
+        showToast('ล้างเครื่องใช้ไฟฟ้าทั้งหมดในระบบเรียบร้อยแล้ว', 'info');
+    }
 }
 
 /**
@@ -118,15 +135,72 @@ function handleSaveTariff(newSettings) {
 }
 
 /**
+ * สลับมุมมองระหว่างหน้า Welcome และ Dashboard วิเคราะห์
+ * @param {'welcome' | 'dashboard'} view
+ */
+function switchView(view) {
+    const welcomeSection = document.getElementById('welcomeSection');
+    const dashboardSection = document.getElementById('dashboardSection');
+    const navHomeBtn = document.getElementById('navHomeBtn');
+    const navDashboardBtn = document.getElementById('navDashboardBtn');
+
+    if (view === 'dashboard') {
+        if (welcomeSection) welcomeSection.classList.add('hidden');
+        if (dashboardSection) {
+            dashboardSection.classList.remove('hidden');
+            dashboardSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        if (navDashboardBtn) {
+            navDashboardBtn.classList.add('bg-emerald-500/20', 'text-emerald-400', 'border-emerald-500/40');
+            navDashboardBtn.classList.remove('text-slate-400', 'border-transparent');
+        }
+        if (navHomeBtn) {
+            navHomeBtn.classList.remove('bg-emerald-500/20', 'text-emerald-400', 'border-emerald-500/40');
+            navHomeBtn.classList.add('text-slate-400', 'border-transparent');
+        }
+        sessionStorage.setItem('current_page_view', 'dashboard');
+    } else {
+        if (welcomeSection) {
+            welcomeSection.classList.remove('hidden');
+            welcomeSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        if (dashboardSection) dashboardSection.classList.add('hidden');
+        if (navHomeBtn) {
+            navHomeBtn.classList.add('bg-emerald-500/20', 'text-emerald-400', 'border-emerald-500/40');
+            navHomeBtn.classList.remove('text-slate-400', 'border-transparent');
+        }
+        if (navDashboardBtn) {
+            navDashboardBtn.classList.remove('bg-emerald-500/20', 'text-emerald-400', 'border-emerald-500/40');
+            navDashboardBtn.classList.add('text-slate-400', 'border-transparent');
+        }
+        sessionStorage.setItem('current_page_view', 'welcome');
+    }
+}
+
+/**
  * ผูก Event Listeners ต่างๆ ของหน้าเว็บ
  */
 function setupEventListeners() {
+    // 0. Welcome & Navigation Switching
+    const startBtn = document.getElementById('startAnalyticsBtn');
+    if (startBtn) startBtn.addEventListener('click', () => switchView('dashboard'));
+
+    const navHomeBtn = document.getElementById('navHomeBtn');
+    if (navHomeBtn) navHomeBtn.addEventListener('click', () => switchView('welcome'));
+
+    const navDashboardBtn = document.getElementById('navDashboardBtn');
+    if (navDashboardBtn) navDashboardBtn.addEventListener('click', () => switchView('dashboard'));
+
     // 1. ปุ่มเปิด Modal เพิ่มอุปกรณ์
     const addBtn = document.getElementById('openAddApplianceBtn');
     if (addBtn) addBtn.addEventListener('click', openAddApplianceModal);
 
     const emptyAddBtn = document.getElementById('emptyAddApplianceBtn');
     if (emptyAddBtn) emptyAddBtn.addEventListener('click', openAddApplianceModal);
+
+    // ปุ่ม Reset Device / ล้างทั้งหมด
+    const clearAllBtn = document.getElementById('clearAllAppliancesBtn');
+    if (clearAllBtn) clearAllBtn.addEventListener('click', handleClearAllAppliances);
 
     // ปุ่มปิด Modal อุปกรณ์
     const closeAppBtn = document.getElementById('closeApplianceModalBtn');
@@ -159,7 +233,15 @@ function setupEventListeners() {
 
     // 3. Modal จำลองการประหยัดพลังงาน (What-If Simulation)
     const openSimBtn = document.getElementById('openSimulationModalBtn');
-    if (openSimBtn) openSimBtn.addEventListener('click', () => openSimulationModal(appliances, tariffSettings));
+    if (openSimBtn) {
+        openSimBtn.addEventListener('click', () => {
+            if (appliances.length === 0) {
+                showToast('กรุณาเพิ่มเครื่องใช้ไฟฟ้าอย่างน้อย 1 รายการก่อนเริ่มจำลอง', 'warning');
+                return;
+            }
+            openSimulationModal(appliances, tariffSettings);
+        });
+    }
 
     const closeSimBtn = document.getElementById('closeSimulationModalBtn');
     if (closeSimBtn) closeSimBtn.addEventListener('click', closeSimulationModal);
@@ -224,13 +306,24 @@ function setupEventListeners() {
     const resetDemoBtn = document.getElementById('resetDemoBtn');
     if (resetDemoBtn) {
         resetDemoBtn.addEventListener('click', () => {
-            if (confirm('คุณต้องการรีเซ็ตข้อมูลเป็นตัวอย่างเริ่มต้นของระบบหรือไม่?')) {
+            if (confirm('คุณต้องการโหลดตัวอย่างเครื่องใช้ไฟฟ้าเริ่มต้น (7 รายการ) หรือไม่?')) {
                 resetToDemoData();
                 appliances = getStoredAppliances();
                 tariffSettings = getStoredTariffSettings();
                 refreshApp();
-                showToast('รีเซ็ตข้อมูลเป็นตัวอย่างเริ่มต้นแล้ว', 'info');
+                showToast('โหลดข้อมูลตัวอย่างเริ่มต้นสำเร็จแล้ว', 'success');
             }
+        });
+    }
+
+    const emptyLoadDemoBtn = document.getElementById('emptyLoadDemoBtn');
+    if (emptyLoadDemoBtn) {
+        emptyLoadDemoBtn.addEventListener('click', () => {
+            resetToDemoData();
+            appliances = getStoredAppliances();
+            tariffSettings = getStoredTariffSettings();
+            refreshApp();
+            showToast('โหลดข้อมูลตัวอย่างเริ่มต้นสำเร็จแล้ว', 'success');
         });
     }
 
@@ -262,6 +355,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     setupEventListeners();
+
+    // ตรวจสอบ View เริ่มต้น (หากเคยเปิดแล้ว ให้ดูจาก sessionStorage ถ้าไม่เคยให้แสดง Welcome ก่อน)
+    const savedView = sessionStorage.getItem('current_page_view') || 'welcome';
+    switchView(savedView);
 
     // แสดงผลข้อมูลครั้งแรก
     refreshApp();

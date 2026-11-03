@@ -13,14 +13,54 @@ import { APPLIANCE_CATEGORIES } from '../models/appliance.js';
  * @returns {object} ผลการวิเคราะห์
  */
 export function generateEnergyInsights(appliances, tariffSettings) {
+    const safeSettings = tariffSettings || {
+        type: 'type1_2',
+        ftRate: 0.3972,
+        serviceFee: 24.62,
+        vatRate: 0.07,
+        flatRate: 7.00
+    };
+
+    // กรณีไม่มีอุปกรณ์ในระบบ (ลบจนหมดเหลือ 0 ชิ้น)
     if (!appliances || appliances.length === 0) {
+        const emptyTariff = calculateProgressiveTariff(
+            0,
+            safeSettings.type,
+            safeSettings.ftRate,
+            safeSettings.serviceFee,
+            safeSettings.vatRate,
+            safeSettings.flatRate
+        );
+
+        const categorySummary = {};
+        Object.keys(APPLIANCE_CATEGORIES).forEach(catId => {
+            categorySummary[catId] = {
+                id: catId,
+                name: APPLIANCE_CATEGORIES[catId].name,
+                kwh: 0,
+                cost: 0,
+                percentage: 0,
+                count: 0,
+                color: APPLIANCE_CATEGORIES[catId].color
+            };
+        });
+
         return {
             totalMonthlyKwh: 0,
-            totalBill: 0,
-            insights: [],
+            totalDailyKwh: 0,
+            tariffResult: emptyTariff,
             topConsumers: [],
-            energyGrade: 'N/A',
-            categorySummary: {}
+            categorySummary,
+            energyGrade: '-',
+            insights: [
+                {
+                    type: 'empty_state',
+                    title: 'ยังไม่มีเครื่องใช้ไฟฟ้าในระบบ',
+                    severity: 'low',
+                    icon: 'fa-circle-plus',
+                    description: 'กดปุ่ม "+ เพิ่มเครื่องใช้ไฟฟ้า" หรือ "รีเซ็ตตัวอย่าง" เพื่อเริ่มต้นการคำนวณและวิเคราะห์ค่าไฟ'
+                }
+            ]
         };
     }
 
@@ -40,11 +80,11 @@ export function generateEnergyInsights(appliances, tariffSettings) {
     // 2. คำนวณค่าไฟฟ้ารวม
     const tariffResult = calculateProgressiveTariff(
         totalMonthlyKwh,
-        tariffSettings.type,
-        tariffSettings.ftRate,
-        tariffSettings.serviceFee,
-        tariffSettings.vatRate,
-        tariffSettings.flatRate
+        safeSettings.type,
+        safeSettings.ftRate,
+        safeSettings.serviceFee,
+        safeSettings.vatRate,
+        safeSettings.flatRate
     );
 
     // 3. จัดอันดับอุปกรณ์ที่กินไฟสูงสุด (Top Energy Consumers)
@@ -110,7 +150,6 @@ export function generateEnergyInsights(appliances, tariffSettings) {
     const acAppliances = enrichedAppliances.filter(a => a.category === 'cooling' && a.watts >= 700);
     if (acAppliances.length > 0) {
         const topAc = acAppliances[0];
-        // คำนวณว่าถ้าลดเวลาเปิดลง 1 ชั่วโมงต่อวัน จะประหยัดได้เท่าไร
         const savedKwh = ((topAc.watts * topAc.quantity * 1) / 1000) * (topAc.daysPerMonth || 30);
         const savedMoney = savedKwh * tariffResult.averageRatePerKwh;
         insights.push({

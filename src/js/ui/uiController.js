@@ -63,7 +63,22 @@ export function showToast(message, type = 'success') {
  * @param {object} insightsData
  */
 export function renderMetricCards(insightsData) {
-    const { totalMonthlyKwh, totalDailyKwh, tariffResult, topConsumers, energyGrade } = insightsData;
+    const totalMonthlyKwh = insightsData?.totalMonthlyKwh || 0;
+    const totalDailyKwh = insightsData?.totalDailyKwh || 0;
+    const tariffResult = insightsData?.tariffResult || {
+        totalBill: 0,
+        totalKwh: 0,
+        baseTariff: 0,
+        serviceFee: 0,
+        ftRate: 0,
+        ftCost: 0,
+        subtotalBeforeVat: 0,
+        vatCost: 0,
+        averageRatePerKwh: 0,
+        tierBreakdown: []
+    };
+    const topConsumers = insightsData?.topConsumers || [];
+    const energyGrade = insightsData?.energyGrade || '-';
 
     // 1. หน่วยไฟฟ้ารวมต่อเดือน
     const monthlyKwhEl = document.getElementById('metricMonthlyKwh');
@@ -98,24 +113,25 @@ export function renderMetricCards(insightsData) {
             topConsumerShareEl.textContent = `${top.percentage}% (${top.cost.toLocaleString()} ฿/ด.)`;
         }
     } else {
-        if (topConsumerNameEl) topConsumerNameEl.textContent = 'ยังไม่มีข้อมูล';
+        if (topConsumerNameEl) topConsumerNameEl.textContent = 'ไม่มีอุปกรณ์ในระบบ';
         if (topConsumerShareEl) topConsumerShareEl.textContent = '-';
     }
 
     // 5. เกรดประสิทธิภาพการใช้พลังงาน
     const gradeBadge = document.getElementById('metricEnergyGradeBadge');
     if (gradeBadge) {
-        gradeBadge.textContent = energyGrade;
+        gradeBadge.textContent = energyGrade === '-' ? 'ยังไม่มีข้อมูล' : `เกรด ${energyGrade}`;
         const gradeColors = {
             A: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40',
             B: 'bg-sky-500/20 text-sky-400 border-sky-500/40',
             C: 'bg-amber-500/20 text-amber-400 border-amber-500/40',
-            D: 'bg-rose-500/20 text-rose-400 border-rose-500/40'
+            D: 'bg-rose-500/20 text-rose-400 border-rose-500/40',
+            '-': 'bg-slate-800 text-slate-400 border-slate-700'
         };
-        gradeBadge.className = `px-3 py-1 text-sm font-bold rounded-lg border ${gradeColors[energyGrade] || gradeColors.A}`;
+        gradeBadge.className = `px-3 py-1 text-xs font-bold rounded-lg border ${gradeColors[energyGrade] || gradeColors['-']}`;
     }
 
-    // เรนเดอร์รายละเอียดแจกแจงค่าไฟ (Tariff Breakdown Table)
+    // เรนเดอร์รายละเอียดแจกแจงค่าไฟ
     renderTariffBreakdown(tariffResult);
 }
 
@@ -127,8 +143,18 @@ function renderTariffBreakdown(tariffResult) {
     const container = document.getElementById('tariffBreakdownDetails');
     if (!container) return;
 
+    if (!tariffResult || tariffResult.totalKwh === 0) {
+        container.innerHTML = `
+            <div class="p-4 rounded-xl bg-slate-900/40 border border-slate-800 text-center text-xs text-slate-500">
+                <i class="fa-solid fa-calculator mb-1 text-slate-600 block text-base"></i>
+                ยังไม่มีข้อมูลการใช้ไฟฟ้าเพื่อคำนวณขั้นบันได
+            </div>
+        `;
+        return;
+    }
+
     let tierRowsHtml = '';
-    tariffResult.tierBreakdown.forEach(tier => {
+    (tariffResult.tierBreakdown || []).forEach(tier => {
         tierRowsHtml += `
             <div class="flex justify-between items-center text-xs text-slate-400 py-0.5">
                 <span>${tier.label} (${tier.units.toLocaleString()} หน่วย × ${tier.rate.toFixed(4)} ฿)</span>
@@ -194,7 +220,7 @@ export function renderApplianceList(appliances, insightsData, filterCategory = '
 
     if (!listContainer) return;
 
-    let filtered = [...appliances];
+    let filtered = Array.isArray(appliances) ? [...appliances] : [];
 
     // กรองตามหมวดหมู่
     if (filterCategory && filterCategory !== 'all') {
