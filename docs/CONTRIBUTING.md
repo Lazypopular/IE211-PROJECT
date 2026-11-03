@@ -9,15 +9,15 @@
 
 โปรเจกต์ใช้โครงสร้าง Branch แยกสภาพแวดล้อมชัดเจน:
 
-* **`main` (Production Branch):**
-  - ตัวแทนของระบบเวอร์ชันสมบูรณ์ พร้อมส่งงานหรือขึ้นโฮสต์จริง (Production / GitHub Pages)
-  - ห้าม Push โค้ดตรงเข้า `main` ทุกกรณี
-  - การเปลี่ยนแปลงต้องผ่าน Pull Request จาก `develop` หรือ Hotfix ที่ผ่านการทดสอบแล้วเท่านั้น
-* **`develop` (Integration / Staging Branch):**
-  - ตัวแทนของโค้ดที่อยู่ระหว่างการพัฒนาและทดสอบความเข้ากันได้
-  - ใช้สำหรับรวมฟีเจอร์ใหม่ก่อนปล่อย Release
+* **`main` (Production Branch - ห้าม Push โดยพลการ):**
+  - ตัวแทนของระบบเวอร์ชันสมบูรณ์ พร้อมส่งงานหรือขึ้นโฮสต์จริง (Production)
+  - **กฎเหล็ก:** ห้าม Push โค้ดตรงเข้า `main` ทุกกรณี **ต้องรอคำสั่งและคำอนุมัติจากผู้ใช้ (User) เท่านั้น**
+* **`pre-main` (AI Assistant Staging Branch):**
+  - สาขาหลักสำหรับการส่งงานของ AI Assistant
+  - เมื่อพัฒนาฟีเจอร์ แก้ไขบั๊ก หรือปรับปรุงระบบเสร็จสมบูรณ์ AI Assistant จะ Push โค้ดขึ้นสู่ Branch `pre-main` โดยอัตโนมัติ
+  - ให้ผู้ใช้เข้ามาตรวจสอบความถูกต้อง (Review) ก่อนตัดสินใจสั่ง Merge เข้าสู่ `main`
 * **Feature Branches (`feat/<feature-name>`):**
-  - แตกกิ่งออกมาจาก `develop` เพื่อพัฒนาแต่ละฟังก์ชัน
+  - แตกกิ่งออกมาจาก `pre-main` เพื่อพัฒนาแต่ละฟังก์ชัน
   - ตัวอย่าง: `feat/tou-tariff-support`, `feat/export-pdf-report`, `feat/energy-saving-simulation`
 * **Fix Branches (`fix/<bug-name>`):**
   - ใช้สำหรับแก้บั๊กหรือข้อผิดพลาด
@@ -55,27 +55,27 @@ chore(ci): configure automated lint and test quality gate
 
 ## 3. มาตรฐานการเขียนโค้ดและคุณภาพ (Code Quality Standards)
 
-1. **JavaScript Standards (ES6+):**
+1. **Python / Flask Standards (PEP 8):**
+   - เขียนโค้ดตามมาตรฐาน PEP 8 แยก Route และ Calculation Engine ชัดเจน
+   - เขียน Unit Test ในโฟลเดอร์ `tests/` ครอบคลุมฟังก์ชันการคำนวณและ API Response
+2. **JavaScript Standards (ES6+):**
    - ใช้ฟังก์ชันและไวยากรณ์สมัยใหม่ (`const`, `let`, Arrow functions, Destructuring, ES Modules)
-   - ฟังก์ชันคำนวณทางคณิตศาสตร์ต้องเขียนเป็น **Pure Functions** (ไม่มีการแก้ไขตัวแปร Global หรือแตะต้อง DOM ภายในฟังก์ชัน)
-   - มีการใส่ JSDoc อธิบายประเภทพารามิเตอร์และค่าที่ส่งกลับอย่างชัดเจน
-2. **CSS / UI Standards:**
+   - ฟังก์ชันคำนวณทางคณิตศาสตร์ต้องเขียนเป็น **Pure Functions**
+3. **CSS / UI Standards:**
    - ใช้หลักการ Responsive Design (Mobile-First / Desktop-Friendly) แสดงผลได้สมบูรณ์ในทุกขนาดหน้าจอ
    - รักษา Palette สีในโทนระบบพลังงานสะอาด (Clean Energy Palette: Emerald, Cyan, Slate, Dark Blue)
-   - มีการระบุคลาสที่ชัดเจน หลีกเลี่ยง Inline Styles ที่ไม่จำเป็น
-3. **Validation & Defensive Programming:**
+4. **Validation & Defensive Programming:**
    - ข้อมูลนำเข้าจากฟอร์มทุกตัวต้องผ่านการ Sanitize และ Validate เสมอ
    - มี Fallback State สำหรับกรณีที่ผู้ใช้ยังไม่ได้เพิ่มอุปกรณ์ หรือลบอุปกรณ์จนหมด
 
 ---
 
-## 4. Pull Request Checklist (รายการตรวจสอบก่อน Merge โค้ด)
+## 4. Pull Request Checklist (รายการตรวจสอบก่อน Merge โค้ดเข้า `main`)
 
-ก่อนทำการเปิดหรืออนุมัติ Pull Request ให้ตรวจสอบตามรายการด้านล่างนี้:
+ก่อนทำการสั่ง Merge จาก `pre-main` เข้าสู่ `main` ให้ตรวจสอบตามรายการด้านล่างนี้:
 
+- [ ] **Automated Unit Tests:** รัน `python -m unittest discover -s tests` ผ่าน 100% ไม่มีข้อผิดพลาด
 - [ ] **Calculation Verification:** ทดสอบการคำนวณหน่วยไฟฟ้า (kWh) และค่าไฟตามอัตราขั้นบันไดว่าตรงตามสูตรของการไฟฟ้านครหลวง/ภูมิภาค
 - [ ] **Sanity Check:** มีการตรวจสอบตัวเลข (Input Validation) ป้องกันค่าติดลบ หรือค่าว่าง
-- [ ] **UI Responsiveness:** ทดสอบหน้าเว็บทั้งบนหน้าจอ Desktop และ Mobile (ไม่มีการตกขอบหรือปุ่มซ้อนทับกัน)
-- [ ] **Clean Console:** ไม่พบ Error สีแดงหรือ Unhandled Exception ในหน้าต่าง Developer Console ของเบราว์เซอร์
-- [ ] **Persistence Test:** ทดสอบว่าเมื่อกดเพิ่ม/แก้ไข/ลบอุปกรณ์ แล้วรีเฟรชหน้าเว็บ ข้อมูลใน `localStorage` ยังคงถูกต้อง
-- [ ] **Documentation:** มีการบันทึกหรืออัปเดตไฟล์ Documentation (`ARCHITECTURE.md`, `README.md`) หากมีการเพิ่มสูตรหรือฟีเจอร์ใหม่
+- [ ] **UI Responsiveness:** ทดสอบหน้าเว็บทั้งบนหน้าจอ Desktop และ Mobile
+- [ ] **User Explicit Approval:** ได้รับคำสั่งหรือการอนุมัติอย่างเป็นทางการจากผู้ใช้แล้วเท่านั้น
