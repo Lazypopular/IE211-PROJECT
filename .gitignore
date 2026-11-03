@@ -3,13 +3,22 @@
 Thumbs.db
 desktop.ini
 
+# Python & Flask
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+venv/
+env/
+*.egg-info/
+
 # Editor & IDE Directories
 .vscode/
 .idea/
 *.swp
 *.swo
 
-# Node / Bundler (if added later)
+# Node / Bundler
 node_modules/
 dist/
 build/
