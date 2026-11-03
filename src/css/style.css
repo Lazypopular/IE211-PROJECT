@@ -1,0 +1,99 @@
+/**
+ * Smart Energy Management System - Custom Styles
+ * Modern Glassmorphism Theme & Print Layout
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+:root {
+    --bg-dark: #090d16;
+    --card-bg: rgba(15, 23, 42, 0.75);
+    --border-color: rgba(255, 255, 255, 0.08);
+}
+
+body {
+    font-family: 'Kanit', sans-serif;
+    background-color: var(--bg-dark);
+    color: #e2e8f0;
+}
+
+code, .font-mono {
+    font-family: 'JetBrains Mono', monospace;
+}
+
+/* Glassmorphism Effect */
+.glass-panel {
+    background: var(--card-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border-color);
+}
+
+.glass-card {
+    background: rgba(30, 41, 59, 0.5);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: #090d16;
+}
+::-webkit-scrollbar-thumb {
+    background: #334155;
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #10b981;
+}
+
+/* Animations */
+@keyframes pulseGlow {
+    0%, 100% {
+        opacity: 0.4;
+    }
+    50% {
+        opacity: 0.8;
+    }
+}
+
+.glow-emerald {
+    box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.25);
+}
+
+/* Range Slider Styling */
+input[type="range"] {
+    accent-color: #10b981;
+}
+
+/* Print Friendly Layout */
+@media print {
+    body {
+        background: #ffffff !important;
+        color: #000000 !important;
+    }
+
+    header, #toastContainer, #openAddApplianceBtn, #openTariffModalBtn, #openSimulationModalBtn, 
+    #exportJsonBtn, #exportCsvBtn, #resetDemoBtn, #printReportBtn, .no-print, button {
+        display: none !important;
+    }
+
+    .glass-panel, .glass-card, .appliance-card {
+        background: #ffffff !important;
+        border: 1px solid #cccccc !important;
+        box-shadow: none !important;
+        color: #000000 !important;
+    }
+
+    h1, h2, h3, h4, h5, p, span, div {
+        color: #000000 !important;
+    }
+
+    .text-emerald-400 {
+        color: #047857 !important;
+    }
+}
