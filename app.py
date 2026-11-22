@@ -142,6 +142,6 @@ def api_calculate():
 
 if __name__ == '__main__':
     # รันเซิร์ฟเวอร์บนพอร์ต 5000 พร้อมเปิดโหมด Debug
-    print("⚡ Starting Smart Energy Management System (Flask)...")
-    print("👉 Open in browser: http://127.0.0.1:5000")
+    print("[Smart Energy] Starting Smart Energy Management System (Flask)...")
+    print("[Smart Energy] Open in browser: http://127.0.0.1:5000")
     app.run(host='0.0.0.0', port=5000, debug=True)
