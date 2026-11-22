@@ -267,7 +267,7 @@ function setupEventListeners() {
     const tariffTypeSelect = document.getElementById('tariffTypeSelect');
     if (tariffTypeSelect) {
         tariffTypeSelect.addEventListener('change', (e) => {
-            toggleFlatRateField(e.target.value === 'flat');
+            toggleFlatRateField(e.target.value === 'flat', e.target.value);
         });
     }
 

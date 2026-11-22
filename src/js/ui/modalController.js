@@ -68,8 +68,11 @@ export function openAddApplianceModal() {
     const form = document.getElementById('applianceForm');
     if (form) form.reset();
 
+    const presetSelect = document.getElementById('presetSelect');
+    if (presetSelect) presetSelect.value = '';
+
     const title = document.getElementById('applianceModalTitle');
-    if (title) title.textContent = 'เพิ่มเครื่องใช้ไฟฟ้าใหม่';
+    if (title) title.innerHTML = '<i class="fa-solid fa-plus-circle text-emerald-400"></i><span>เพิ่มเครื่องใช้ไฟฟ้าใหม่</span>';
 
     const modal = document.getElementById('applianceModal');
     if (modal) modal.classList.remove('hidden');
@@ -82,6 +85,9 @@ export function openAddApplianceModal() {
 export function openEditApplianceModal(appliance) {
     editingApplianceId = appliance.id;
 
+    const presetSelect = document.getElementById('presetSelect');
+    if (presetSelect) presetSelect.value = '';
+
     document.getElementById('applianceName').value = appliance.name;
     document.getElementById('applianceCategory').value = appliance.category;
     document.getElementById('applianceWatts').value = appliance.watts;
@@ -91,7 +97,7 @@ export function openEditApplianceModal(appliance) {
     document.getElementById('applianceNote').value = appliance.note || '';
 
     const title = document.getElementById('applianceModalTitle');
-    if (title) title.textContent = 'แก้ไขข้อมูลเครื่องใช้ไฟฟ้า';
+    if (title) title.innerHTML = '<i class="fa-regular fa-pen-to-square text-emerald-400"></i><span>แก้ไขข้อมูลเครื่องใช้ไฟฟ้า</span>';
 
     const modal = document.getElementById('applianceModal');
     if (modal) modal.classList.remove('hidden');
@@ -154,7 +160,7 @@ export function openTariffModal(currentSettings) {
     document.getElementById('tariffServiceFeeInput').value = currentSettings.serviceFee ?? 24.62;
     document.getElementById('tariffFlatRateInput').value = currentSettings.flatRate ?? 7.00;
 
-    toggleFlatRateField(currentSettings.type === 'flat');
+    toggleFlatRateField(currentSettings.type === 'flat', currentSettings.type);
 
     const modal = document.getElementById('tariffModal');
     if (modal) modal.classList.remove('hidden');
@@ -169,13 +175,20 @@ export function closeTariffModal() {
 }
 
 /**
- * แสดงหรือซ่อนช่อง Flat rate ตามประเภทที่เลือก
+ * แสดงหรือซ่อนช่อง Flat rate ตามประเภทที่เลือก พร้อมอัปเดตค่าบริการรายเดือนมาตรฐาน
  */
-export function toggleFlatRateField(isFlat) {
+export function toggleFlatRateField(isFlat, selectedType = null) {
     const container = document.getElementById('flatRateContainer');
     if (container) {
         if (isFlat) container.classList.remove('hidden');
         else container.classList.add('hidden');
+    }
+
+    const serviceFeeInput = document.getElementById('tariffServiceFeeInput');
+    if (serviceFeeInput && selectedType) {
+        if (selectedType === 'type1_2') serviceFeeInput.value = 24.62;
+        else if (selectedType === 'type1_1') serviceFeeInput.value = 8.19;
+        else if (selectedType === 'flat') serviceFeeInput.value = 0.00;
     }
 }
 
@@ -219,7 +232,7 @@ export function openSimulationModal(appliances, tariffSettings) {
     appliances.forEach(app => {
         const opt = document.createElement('option');
         opt.value = app.id;
-        opt.textContent = `${app.name} (${app.watts}W, ${app.hoursPerDay} ชม./วัน)`;
+        opt.textContent = `${app.name} (${app.watts}W, เปิด ${app.hoursPerDay} ชม./วัน)`;
         select.appendChild(opt);
     });
 
@@ -238,7 +251,7 @@ export function closeSimulationModal() {
 }
 
 /**
- * คำนวณผลการจำลองลดพลังงานแบบเรียลไทม์
+ * คำนวณผลการจำลองลดพลังงานแบบเรียลไทม์ (จำกัดไม่ให้ลดเกินชั่วโมงที่เปิดใช้งานจริง)
  */
 export function updateSimulationCalculations(appliances, tariffSettings) {
     const select = document.getElementById('simulationApplianceSelect');
@@ -251,16 +264,24 @@ export function updateSimulationCalculations(appliances, tariffSettings) {
     const targetApp = appliances.find(a => a.id === targetId);
     if (!targetApp) return;
 
-    const reduceHours = parseFloat(hoursReduceSlider.value) || 0;
-    if (hoursValLabel) hoursValLabel.textContent = `${reduceHours} ชม./วัน`;
+    const maxHours = Math.max(0.5, Number(targetApp.hoursPerDay) || 0.5);
+    hoursReduceSlider.max = maxHours;
+
+    let reduceHours = parseFloat(hoursReduceSlider.value) || 0.5;
+    if (reduceHours > maxHours) {
+        reduceHours = maxHours;
+        hoursReduceSlider.value = maxHours;
+    }
+
+    if (hoursValLabel) {
+        hoursValLabel.textContent = `${reduceHours} ชม./วัน (จาก ${targetApp.hoursPerDay} ชม.)`;
+    }
 
     // คำนวณพลังงานที่ลดได้
-    // (Watts * Qty * ReduceHours * Days) / 1000 = kWh saved per month
     const savedMonthlyKwh = (targetApp.watts * (targetApp.quantity || 1) * reduceHours * (targetApp.daysPerMonth || 30)) / 1000;
-    const estRate = tariffSettings.type === 'flat' ? (tariffSettings.flatRate || 7) : 4.2; // ประมาณการค่าไฟเฉลี่ย
+    const estRate = tariffSettings.type === 'flat' ? (tariffSettings.flatRate || 7) : 4.2;
     const savedMonthlyMoney = savedMonthlyKwh * estRate * 1.07;
     const savedYearlyMoney = savedMonthlyMoney * 12;
-    // ก๊าซเรือนกระจกที่ลดได้ (Emission factor ไทย ~ 0.4999 kg CO2e / kWh)
     const savedCo2 = savedMonthlyKwh * 0.4999;
 
     document.getElementById('simSavedKwh').textContent = `${savedMonthlyKwh.toFixed(1)} หน่วย/เดือน`;
