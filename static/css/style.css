@@ -1,24 +1,43 @@
 /**
  * Smart Energy Management System - Custom Styles
- * Modern Glassmorphism Theme & Print Layout
+ * Modern Glassmorphism Theme, Ambient Backdrop & Print Layout
  */
 
 @import url('https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300&family=JetBrains+Mono:wght@400;500;700&display=swap');
 
 :root {
     --bg-dark: #090d16;
-    --card-bg: rgba(15, 23, 42, 0.75);
+    --card-bg: rgba(15, 23, 42, 0.78);
     --border-color: rgba(255, 255, 255, 0.08);
+}
+
+html {
+    scroll-behavior: smooth;
 }
 
 body {
     font-family: 'Kanit', sans-serif;
     background-color: var(--bg-dark);
     color: #e2e8f0;
+    position: relative;
+    overflow-x: hidden;
 }
 
 code, .font-mono {
     font-family: 'JetBrains Mono', monospace;
+}
+
+/* Ambient Background Glow & Subtle Grid */
+.app-bg {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+        radial-gradient(circle at 15% 10%, rgba(16, 185, 129, 0.08), transparent 35%),
+        radial-gradient(circle at 85% 20%, rgba(6, 182, 212, 0.07), transparent 35%),
+        radial-gradient(circle at 50% 90%, rgba(20, 184, 166, 0.05), transparent 40%),
+        linear-gradient(to bottom, #090d16, #0b1120);
 }
 
 /* Glassmorphism Effect */
@@ -27,12 +46,37 @@ code, .font-mono {
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid var(--border-color);
+    box-shadow: 0 12px 32px -12px rgba(0, 0, 0, 0.55), inset 0 1px 0 0 rgba(255, 255, 255, 0.07);
 }
 
 .glass-card {
     background: rgba(30, 41, 59, 0.5);
     backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Category Filter Active Tab Highlight */
+.active-tab {
+    background: rgba(16, 185, 129, 0.12);
+    box-shadow: 0 0 16px -4px rgba(16, 185, 129, 0.25);
+}
+
+/* Appliance Card Smooth Hover */
+.appliance-card {
+    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.appliance-card:hover {
+    transform: translateY(-1px);
+}
+
+/* Hide Horizontal Scrollbar for Category Pills */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }
 
 /* Custom Scrollbar */
@@ -70,27 +114,37 @@ input[type="range"] {
     accent-color: #10b981;
 }
 
-/* Print Friendly Layout */
+/* Print Friendly Layout (A4 Report) */
 @media print {
     body {
         background: #ffffff !important;
         color: #000000 !important;
     }
 
-    header, #toastContainer, #openAddApplianceBtn, #openTariffModalBtn, #openSimulationModalBtn, 
-    #exportJsonBtn, #exportCsvBtn, #resetDemoBtn, #printReportBtn, .no-print, button {
+    .app-bg, header, footer, #welcomeSection, #toastContainer, #openAddApplianceBtn, #openTariffModalBtn, #openSimulationModalBtn, 
+    #exportJsonBtn, #exportCsvBtn, #resetDemoBtn, #printReportBtn, #clearAllAppliancesBtn, .no-print, button, label, input {
         display: none !important;
+    }
+
+    #dashboardSection {
+        display: block !important;
     }
 
     .glass-panel, .glass-card, .appliance-card {
         background: #ffffff !important;
-        border: 1px solid #cccccc !important;
+        border: 1px solid #cbd5e1 !important;
         box-shadow: none !important;
         color: #000000 !important;
+        break-inside: avoid;
+    }
+
+    #applianceListContainer {
+        max-height: none !important;
+        overflow: visible !important;
     }
 
     h1, h2, h3, h4, h5, p, span, div {
-        color: #000000 !important;
+        color: #0f172a !important;
     }
 
     .text-emerald-400 {

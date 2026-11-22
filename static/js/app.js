@@ -295,6 +295,26 @@ function setupEventListeners() {
     const simSlider = document.getElementById('simulationHoursSlider');
     if (simSlider) simSlider.addEventListener('input', () => updateSimulationCalculations(appliances, tariffSettings));
 
+    // ปิด Modal เมื่อคลิกพื้นหลังสีดำ หรือกดปุ่ม Escape
+    ['applianceModal', 'tariffModal', 'simulationModal'].forEach(modalId => {
+        const modalEl = document.getElementById(modalId);
+        if (modalEl) {
+            modalEl.addEventListener('click', (e) => {
+                if (e.target === modalEl) {
+                    modalEl.classList.add('hidden');
+                }
+            });
+        }
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeApplianceModal();
+            closeTariffModal();
+            closeSimulationModal();
+        }
+    });
+
     // 4. ค้นหาและกรองหมวดหมู่
     const searchInput = document.getElementById('applianceSearchInput');
     if (searchInput) {

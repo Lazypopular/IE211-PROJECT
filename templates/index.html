@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart Energy Management System | ระบบจัดการและวิเคราะห์การใช้พลังงานไฟฟ้าอัจฉริยะ (Flask)</title>
+    <meta name="description" content="เว็บแอปคำนวณและวิเคราะห์การใช้พลังงานไฟฟ้าในบ้านและอาคาร ตามอัตราค่าไฟจริงของ กฟน./กฟภ. พร้อมกราฟและระบบจำลองลดค่าไฟ (IE211)">
+    <meta name="theme-color" content="#090d16">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0' y1='1' x2='1' y2='0'><stop offset='0' stop-color='%23059669'/><stop offset='1' stop-color='%232dd4bf'/></linearGradient></defs><rect width='100' height='100' rx='24' fill='url(%23g)'/><path d='M56 14 28 56h18l-4 30 30-44H54z' fill='white'/></svg>">
     
     <!-- Tailwind CSS (via official modern standalone CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -47,6 +50,9 @@
 </head>
 <body class="bg-dark-900 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-emerald-500 selection:text-white">
 
+    <!-- Ambient Background Layer -->
+    <div class="app-bg" aria-hidden="true"></div>
+
     <!-- Toast Notification Container -->
     <div id="toastContainer" class="fixed top-5 right-5 z-50 flex flex-col gap-2.5 max-w-sm w-full pointer-events-none"></div>
 
@@ -78,21 +84,21 @@
             <!-- Top Actions (ซ่อนในหน้าแรก แสดงเฉพาะหน้าระบบวิเคราะห์) -->
             <div id="headerTopControls" class="hidden flex items-center gap-2 sm:gap-2.5 flex-wrap">
                 <!-- ปุ่มกลับหน้าแรก -->
-                <button id="navHomeBtn" class="px-3.5 py-2 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs sm:text-sm font-medium flex items-center gap-2 transition-all">
+                <button id="navHomeBtn" title="กลับหน้าแรก" class="h-10 px-3.5 rounded-xl bg-slate-800/70 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/80 text-sm font-medium flex items-center gap-2 transition-all">
                     <i class="fa-solid fa-house text-slate-400"></i>
-                    <span>หน้าแรก</span>
+                    <span class="hidden sm:inline">หน้าแรก</span>
                 </button>
 
                 <!-- ปุ่มจำลองการประหยัดพลังงาน -->
-                <button id="openSimulationModalBtn" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-teal-300 border border-teal-500/30 text-xs sm:text-sm font-medium flex items-center gap-2 transition-all hover:scale-105 shadow-sm">
+                <button id="openSimulationModalBtn" title="จำลองลดค่าไฟ" class="h-10 px-3.5 rounded-xl bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 border border-teal-500/30 text-sm font-medium flex items-center gap-2 transition-all">
                     <i class="fa-solid fa-wand-magic-sparkles text-teal-400"></i>
-                    <span>จำลองลดค่าไฟ</span>
+                    <span class="hidden sm:inline">จำลองลดค่าไฟ</span>
                 </button>
 
                 <!-- ปุ่มตั้งค่าอัตราค่าไฟ -->
-                <button id="openTariffModalBtn" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs sm:text-sm font-medium flex items-center gap-2 transition-all hover:text-white">
+                <button id="openTariffModalBtn" title="ตั้งค่าอัตราค่าไฟ" class="h-10 px-3.5 rounded-xl bg-slate-800/70 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/80 text-sm font-medium flex items-center gap-2 transition-all">
                     <i class="fa-solid fa-sliders text-slate-400"></i>
-                    <span>อัตราค่าไฟ</span>
+                    <span class="hidden sm:inline">อัตราค่าไฟ</span>
                 </button>
             </div>
         </div>

@@ -85,6 +85,16 @@ export function renderBudgetTracker(insightsData, budgetTarget) {
         budgetInputEl.value = target;
     }
 
+    // ไฮไลต์ปุ่ม Preset งบค่าไฟที่ตรงกับค่าปัจจุบัน
+    document.querySelectorAll('[data-budget-preset]').forEach(btn => {
+        const presetVal = Number(btn.getAttribute('data-budget-preset'));
+        if (presetVal === target) {
+            btn.className = 'px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-xs font-mono font-bold border border-emerald-500/50 transition-colors';
+        } else {
+            btn.className = 'px-2.5 py-1 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-emerald-400 text-xs font-mono border border-slate-700/80 transition-colors';
+        }
+    });
+
     if (billTextEl) {
         billTextEl.innerHTML = `
             <span class="text-slate-100 font-bold">${totalBill.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
