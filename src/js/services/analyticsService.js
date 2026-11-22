@@ -21,13 +21,17 @@ export function generateEnergyInsights(appliances, tariffSettings) {
         flatRate: 7.00
     };
 
-    // กรณีไม่มีอุปกรณ์ในระบบ (ลบจนหมดเหลือ 0 ชิ้น)
-    if (!appliances || appliances.length === 0) {
+    const allAppliances = Array.isArray(appliances) ? appliances : [];
+    // กรองเฉพาะอุปกรณ์ที่เปิดใช้งานอยู่ (enabled !== false)
+    const activeAppliances = allAppliances.filter(a => a.enabled !== false);
+
+    // กรณีไม่มีอุปกรณ์ที่เปิดใช้งานในระบบ
+    if (activeAppliances.length === 0) {
         const emptyTariff = calculateProgressiveTariff(
             0,
             safeSettings.type,
             safeSettings.ftRate,
-            safeSettings.serviceFee,
+            0,
             safeSettings.vatRate,
             safeSettings.flatRate
         );
@@ -45,9 +49,13 @@ export function generateEnergyInsights(appliances, tariffSettings) {
             };
         });
 
+        const hasDisabledItems = allAppliances.length > 0;
+
         return {
             totalMonthlyKwh: 0,
             totalDailyKwh: 0,
+            activeCount: 0,
+            totalCount: allAppliances.length,
             tariffResult: emptyTariff,
             topConsumers: [],
             categorySummary,
@@ -55,18 +63,20 @@ export function generateEnergyInsights(appliances, tariffSettings) {
             insights: [
                 {
                     type: 'empty_state',
-                    title: 'ยังไม่มีเครื่องใช้ไฟฟ้าในระบบ',
+                    title: hasDisabledItems ? 'อุปกรณ์ทั้งหมดถูกปิดสวิตช์ชั่วคราว' : 'ยังไม่มีเครื่องใช้ไฟฟ้าในระบบ',
                     severity: 'low',
-                    icon: 'fa-circle-plus',
-                    description: 'กดปุ่ม "+ เพิ่มเครื่องใช้ไฟฟ้า" หรือ "รีเซ็ตตัวอย่าง" เพื่อเริ่มต้นการคำนวณและวิเคราะห์ค่าไฟ'
+                    icon: hasDisabledItems ? 'fa-toggle-off' : 'fa-circle-plus',
+                    description: hasDisabledItems
+                        ? 'เปิดสวิตช์หน้าการ์ดเครื่องใช้ไฟฟ้าอย่างน้อย 1 รายการ เพื่อเริ่มคำนวณค่าไฟ'
+                        : 'กดปุ่ม "+ เพิ่มอุปกรณ์" หรือ "โหลดตัวอย่าง" เพื่อเริ่มต้นการคำนวณและวิเคราะห์ค่าไฟ'
                 }
             ]
         };
     }
 
-    // 1. คำนวณพลังงานของแต่ละชิ้น
+    // 1. คำนวณพลังงานของแต่ละชิ้นที่เปิดใช้งานอยู่
     let totalMonthlyKwh = 0;
-    const enrichedAppliances = appliances.map(app => {
+    const enrichedAppliances = activeAppliances.map(app => {
         const energy = calculateApplianceEnergy(app.watts, app.quantity, app.hoursPerDay, app.daysPerMonth);
         totalMonthlyKwh += energy.monthlyKwh;
         return {
@@ -198,6 +208,8 @@ export function generateEnergyInsights(appliances, tariffSettings) {
     return {
         totalMonthlyKwh: Number(totalMonthlyKwh.toFixed(2)),
         totalDailyKwh: Number((totalMonthlyKwh / 30).toFixed(2)),
+        activeCount: activeAppliances.length,
+        totalCount: allAppliances.length,
         tariffResult,
         topConsumers,
         categorySummary,

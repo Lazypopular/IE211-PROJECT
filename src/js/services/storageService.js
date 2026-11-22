@@ -8,7 +8,8 @@ import { TARIFF_CONFIG } from '../config/tariffs.js';
 
 const STORAGE_KEYS = {
     APPLIANCES: 'smart_energy_appliances_v1',
-    TARIFF_SETTINGS: 'smart_energy_tariff_settings_v1'
+    TARIFF_SETTINGS: 'smart_energy_tariff_settings_v1',
+    BUDGET_TARGET: 'smart_energy_budget_target_v1'
 };
 
 export const DEFAULT_TARIFF_SETTINGS = {
@@ -18,6 +19,40 @@ export const DEFAULT_TARIFF_SETTINGS = {
     vatRate: TARIFF_CONFIG.vatRate,
     flatRate: TARIFF_CONFIG.flat.flatRate
 };
+
+export const DEFAULT_BUDGET_TARGET = 1500;
+
+/**
+ * ดึงเป้าหมายงบค่าไฟรายเดือน (บาท)
+ * @returns {number}
+ */
+export function getStoredBudgetTarget() {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEYS.BUDGET_TARGET);
+        if (raw === null) {
+            saveStoredBudgetTarget(DEFAULT_BUDGET_TARGET);
+            return DEFAULT_BUDGET_TARGET;
+        }
+        const parsed = parseFloat(raw);
+        return !isNaN(parsed) && parsed > 0 ? parsed : DEFAULT_BUDGET_TARGET;
+    } catch (e) {
+        return DEFAULT_BUDGET_TARGET;
+    }
+}
+
+/**
+ * บันทึกเป้าหมายงบค่าไฟรายเดือน (บาท)
+ * @param {number} amount
+ */
+export function saveStoredBudgetTarget(amount) {
+    try {
+        const validAmount = Math.max(100, Number(amount) || DEFAULT_BUDGET_TARGET);
+        localStorage.setItem(STORAGE_KEYS.BUDGET_TARGET, String(validAmount));
+        return validAmount;
+    } catch (e) {
+        return DEFAULT_BUDGET_TARGET;
+    }
+}
 
 /**
  * ดึงรายการเครื่องใช้ไฟฟ้าทั้งหมด
@@ -99,8 +134,9 @@ export function saveStoredTariffSettings(settings) {
 export function exportDataAsJSON() {
     const data = {
         exportedAt: new Date().toISOString(),
-        version: '2.0.0',
+        version: '2.1.0',
         project: 'Smart Energy Management System (IE211)',
+        budgetTarget: getStoredBudgetTarget(),
         tariffSettings: getStoredTariffSettings(),
         appliances: getStoredAppliances()
     };
@@ -124,10 +160,11 @@ export function exportDataAsCSV() {
         return;
     }
 
-    const headers = ['ชื่อเครื่องใช้ไฟฟ้า', 'หมวดหมู่', 'กำลังไฟฟ้า (Watts)', 'จำนวน (เครื่อง)', 'ชั่วโมงใช้งาน/วัน', 'วันใช้งาน/เดือน', 'หมายเหตุ'];
+    const headers = ['ชื่อเครื่องใช้ไฟฟ้า', 'หมวดหมู่', 'สถานะ', 'กำลังไฟฟ้า (Watts)', 'จำนวน (เครื่อง)', 'ชั่วโมงใช้งาน/วัน', 'วันใช้งาน/เดือน', 'หมายเหตุ'];
     const rows = appliances.map(item => [
         `"${item.name.replace(/"/g, '""')}"`,
         `"${item.category || ''}"`,
+        item.enabled === false ? '"ปิดชั่วคราว"' : '"เปิดใช้งาน"',
         item.watts,
         item.quantity,
         item.hoursPerDay,
@@ -160,6 +197,9 @@ export function importDataFromJSON(file) {
                     saveStoredAppliances(parsed.appliances);
                     if (parsed.tariffSettings) {
                         saveStoredTariffSettings(parsed.tariffSettings);
+                    }
+                    if (parsed.budgetTarget) {
+                        saveStoredBudgetTarget(parsed.budgetTarget);
                     }
                     resolve(true);
                 } else {

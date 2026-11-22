@@ -1,6 +1,6 @@
 /**
  * Smart Energy Management System - UI Controller
- * จัดการการเรนเดอร์ DOM ของ Dashboard, รายการอุปกรณ์, สรุปสถิติ และ Toast แจ้งเตือน
+ * จัดการการเรนเดอร์ DOM ของ Dashboard, เป้าหมายงบค่าไฟ, รายการอุปกรณ์, สรุปสถิติ และ Toast แจ้งเตือน
  */
 
 import { APPLIANCE_CATEGORIES } from '../models/appliance.js';
@@ -8,13 +8,15 @@ import { calculateApplianceEnergy, calculateApplianceCostShare } from '../servic
 
 let onEditApplianceCallback = null;
 let onDeleteApplianceCallback = null;
+let onToggleApplianceCallback = null;
 
 /**
- * กำหนด Callback สำหรับปุ่มแก้ไขและลบอุปกรณ์
+ * กำหนด Callback สำหรับปุ่มแก้ไข, ลบ และสวิตช์เปิด-ปิดอุปกรณ์
  */
-export function initUIListeners({ onEdit, onDelete }) {
+export function initUIListeners({ onEdit, onDelete, onToggle }) {
     onEditApplianceCallback = onEdit;
     onDeleteApplianceCallback = onDelete;
+    onToggleApplianceCallback = onToggle;
 }
 
 /**
@@ -56,6 +58,101 @@ export function showToast(message, type = 'success') {
         toast.classList.add('opacity-0', 'translate-x-4');
         setTimeout(() => toast.remove(), 300);
     }, 3200);
+}
+
+/**
+ * เรนเดอร์แถบติดตามเป้าหมายงบค่าไฟรายเดือน (Monthly Budget Target & Alert Bar)
+ * @param {object} insightsData
+ * @param {number} budgetTarget
+ */
+export function renderBudgetTracker(insightsData, budgetTarget) {
+    const totalBill = insightsData?.tariffResult?.totalBill || 0;
+    const avgRate = insightsData?.tariffResult?.averageRatePerKwh || 4.4;
+    const target = Math.max(100, Number(budgetTarget) || 1500);
+
+    const pct = (totalBill / target) * 100;
+    const clampedPct = Math.min(100, Math.max(0, pct));
+    const diff = target - totalBill;
+
+    const billTextEl = document.getElementById('budgetCurrentBillText');
+    const pctBadgeEl = document.getElementById('budgetPercentBadge');
+    const progressBarEl = document.getElementById('budgetProgressBar');
+    const statusTextEl = document.getElementById('budgetStatusText');
+    const budgetInputEl = document.getElementById('budgetTargetInput');
+    const budgetCardEl = document.getElementById('budgetTrackerCard');
+
+    if (budgetInputEl && document.activeElement !== budgetInputEl) {
+        budgetInputEl.value = target;
+    }
+
+    if (billTextEl) {
+        billTextEl.innerHTML = `
+            <span class="text-slate-100 font-bold">${totalBill.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            <span class="text-slate-500 mx-1">/</span>
+            <span class="text-emerald-400 font-semibold">${target.toLocaleString('th-TH')} ฿</span>
+        `;
+    }
+
+    if (pctBadgeEl) {
+        pctBadgeEl.textContent = `${pct.toFixed(1)}% ของงบ`;
+    }
+
+    if (progressBarEl && statusTextEl && pctBadgeEl) {
+        progressBarEl.style.width = `${clampedPct}%`;
+
+        if (pct > 100) {
+            // เกินงบ (Over Budget)
+            const overAmount = Math.abs(diff);
+            const kwhToReduce = avgRate > 0 ? overAmount / avgRate : overAmount / 4.4;
+
+            progressBarEl.className = 'h-full rounded-full transition-all duration-500 bg-gradient-to-r from-amber-500 to-rose-500';
+            pctBadgeEl.className = 'text-xs font-mono font-bold px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/40';
+            if (budgetCardEl) {
+                budgetCardEl.classList.add('border-rose-500/40');
+                budgetCardEl.classList.remove('border-slate-800', 'border-amber-500/40');
+            }
+            statusTextEl.innerHTML = `
+                <span class="text-rose-400 font-medium">
+                    <i class="fa-solid fa-triangle-exclamation mr-1"></i>เกินงบที่ตั้งไว้ +${overAmount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท
+                </span>
+                <span class="text-slate-400 ml-1">
+                    (แนะนำให้ลดการใช้ไฟลงประมาณ <strong class="text-rose-300 font-mono">~${kwhToReduce.toFixed(1)} หน่วย/เดือน</strong> หรือลองปิดสวิตช์อุปกรณ์บางชิ้นด้านล่าง)
+                </span>
+            `;
+        } else if (pct >= 80) {
+            // ใกล้เต็มงบ (Warning 80% - 100%)
+            progressBarEl.className = 'h-full rounded-full transition-all duration-500 bg-gradient-to-r from-emerald-500 to-amber-400';
+            pctBadgeEl.className = 'text-xs font-mono font-bold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40';
+            if (budgetCardEl) {
+                budgetCardEl.classList.add('border-amber-500/40');
+                budgetCardEl.classList.remove('border-slate-800', 'border-rose-500/40');
+            }
+            statusTextEl.innerHTML = `
+                <span class="text-amber-300 font-medium">
+                    <i class="fa-solid fa-circle-exclamation mr-1"></i>ใกล้เต็มงบรายเดือนแล้ว
+                </span>
+                <span class="text-slate-400 ml-1">
+                    • ยังเหลืองบอีก <strong class="text-amber-300 font-mono">${diff.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท</strong>
+                </span>
+            `;
+        } else {
+            // อยู่ในเกณฑ์ดี (< 80%)
+            progressBarEl.className = 'h-full rounded-full transition-all duration-500 bg-gradient-to-r from-emerald-500 to-teal-400';
+            pctBadgeEl.className = 'text-xs font-mono font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+            if (budgetCardEl) {
+                budgetCardEl.classList.remove('border-rose-500/40', 'border-amber-500/40');
+                budgetCardEl.classList.add('border-slate-800');
+            }
+            statusTextEl.innerHTML = `
+                <span class="text-emerald-400 font-medium">
+                    <i class="fa-solid fa-circle-check mr-1"></i>อยู่ในเกณฑ์งบประมาณที่ตั้งไว้
+                </span>
+                <span class="text-slate-400 ml-1">
+                    • ยังเหลืองบอีก <strong class="text-emerald-300 font-mono">${diff.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท</strong>
+                </span>
+            `;
+        }
+    }
 }
 
 /**
@@ -113,7 +210,7 @@ export function renderMetricCards(insightsData) {
             topConsumerShareEl.textContent = `${top.percentage}% (${top.cost.toLocaleString()} ฿/ด.)`;
         }
     } else {
-        if (topConsumerNameEl) topConsumerNameEl.textContent = 'ไม่มีอุปกรณ์ในระบบ';
+        if (topConsumerNameEl) topConsumerNameEl.textContent = 'ไม่มีอุปกรณ์ที่เปิดใช้งาน';
         if (topConsumerShareEl) topConsumerShareEl.textContent = '-';
     }
 
@@ -207,7 +304,7 @@ function renderTariffBreakdown(tariffResult) {
 }
 
 /**
- * เรนเดอร์การ์ดรายการเครื่องใช้ไฟฟ้าทั้งหมด
+ * เรนเดอร์การ์ดรายการเครื่องใช้ไฟฟ้าทั้งหมด พร้อมสวิตช์เปิด-ปิดชั่วคราว (Instant On/Off Toggle)
  * @param {Array} appliances
  * @param {object} insightsData
  * @param {string} filterCategory
@@ -236,8 +333,14 @@ export function renderApplianceList(appliances, insightsData, filterCategory = '
         );
     }
 
+    const activeInFiltered = filtered.filter(a => a.enabled !== false).length;
+
     if (countBadge) {
-        countBadge.textContent = `${filtered.length} รายการ`;
+        if (filtered.length > 0 && activeInFiltered < filtered.length) {
+            countBadge.textContent = `เปิด ${activeInFiltered}/${filtered.length} รายการ`;
+        } else {
+            countBadge.textContent = `${filtered.length} รายการ`;
+        }
     }
 
     if (filtered.length === 0) {
@@ -250,29 +353,46 @@ export function renderApplianceList(appliances, insightsData, filterCategory = '
 
     const totalMonthlyKwh = insightsData.totalMonthlyKwh || 1;
     const totalBill = insightsData.tariffResult?.totalBill || 0;
+    const avgRate = insightsData.tariffResult?.averageRatePerKwh || 4.4;
 
     let html = '';
     filtered.forEach(item => {
+        const isEnabled = item.enabled !== false;
         const energy = calculateApplianceEnergy(item.watts, item.quantity, item.hoursPerDay, item.daysPerMonth);
-        const share = calculateApplianceCostShare(energy.monthlyKwh, totalMonthlyKwh, totalBill);
+        const share = isEnabled
+            ? calculateApplianceCostShare(energy.monthlyKwh, totalMonthlyKwh, totalBill)
+            : { cost: Number((energy.monthlyKwh * avgRate).toFixed(2)), percentage: 0 };
+
         const catConfig = APPLIANCE_CATEGORIES[item.category] || APPLIANCE_CATEGORIES.other;
 
+        const cardStyle = isEnabled
+            ? 'bg-slate-900/60 hover:bg-slate-800/80 border-slate-800 hover:border-slate-700/80'
+            : 'bg-slate-950/40 border-slate-800/60 border-dashed opacity-60 hover:opacity-85';
+
         html += `
-            <div class="appliance-card relative bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 hover:border-slate-700/80 rounded-2xl p-4 sm:p-5 transition-all duration-200 group shadow-lg">
+            <div class="appliance-card relative border rounded-2xl p-4 sm:p-5 transition-all duration-200 group shadow-lg ${cardStyle}">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     
-                    <!-- ส่วนข้อมูลเครื่องใช้ไฟฟ้า -->
+                    <!-- ส่วนข้อมูลเครื่องใช้ไฟฟ้า + สวิตช์เปิด/ปิด -->
                     <div class="flex items-start gap-3.5">
-                        <div class="w-11 h-11 rounded-xl flex items-center justify-center text-lg ${catConfig.badgeBg} ${catConfig.badgeText} border ${catConfig.badgeBorder} flex-shrink-0">
+                        <!-- สวิตช์เปิด-ปิดอุปกรณ์ชั่วคราว -->
+                        <button type="button" data-action="toggle" data-id="${item.id}" title="${isEnabled ? 'คลิกเพื่อทดลองปิดอุปกรณ์นี้ชั่วคราว' : 'คลิกเพื่อเปิดใช้งานอุปกรณ์นี้'}" class="mt-1.5 flex-shrink-0 focus:outline-none">
+                            <div class="w-10 h-5 rounded-full transition-colors duration-200 flex items-center p-0.5 ${isEnabled ? 'bg-emerald-500 justify-end shadow-sm shadow-emerald-500/30' : 'bg-slate-700 justify-start'}">
+                                <div class="w-4 h-4 rounded-full bg-white shadow transform transition-transform"></div>
+                            </div>
+                        </button>
+
+                        <div class="w-10 h-10 rounded-xl flex items-center justify-center text-base ${catConfig.badgeBg} ${catConfig.badgeText} border ${catConfig.badgeBorder} flex-shrink-0">
                             <i class="fa-solid ${catConfig.icon}"></i>
                         </div>
                         <div>
                             <div class="flex items-center gap-2 flex-wrap">
-                                <h4 class="font-semibold text-slate-100 text-base group-hover:text-emerald-300 transition-colors">${escapeHtml(item.name)}</h4>
+                                <h4 class="font-semibold ${isEnabled ? 'text-slate-100 group-hover:text-emerald-300' : 'text-slate-400 line-through'} text-base transition-colors">${escapeHtml(item.name)}</h4>
                                 <span class="text-[11px] px-2 py-0.5 rounded-full border ${catConfig.badgeBg} ${catConfig.badgeText} ${catConfig.badgeBorder}">
                                     ${catConfig.name}
                                 </span>
                                 ${item.quantity > 1 ? `<span class="text-xs bg-slate-800 text-slate-300 px-2 py-0.5 rounded-md font-medium">× ${item.quantity} เครื่อง</span>` : ''}
+                                ${!isEnabled ? `<span class="text-[11px] bg-amber-500/15 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-full font-medium"><i class="fa-solid fa-power-off mr-1"></i>พักการใช้งาน (ไม่คิดค่าไฟ)</span>` : ''}
                             </div>
                             
                             <div class="flex items-center gap-x-4 gap-y-1 mt-1 text-xs text-slate-400 flex-wrap">
@@ -287,12 +407,21 @@ export function renderApplianceList(appliances, insightsData, filterCategory = '
                     <!-- ส่วนแสดงค่าไฟและหน่วยไฟ -->
                     <div class="flex items-center justify-between sm:justify-end gap-4 border-t sm:border-t-0 border-slate-800/80 pt-3 sm:pt-0">
                         <div class="text-left sm:text-right">
-                            <div class="text-base font-bold text-emerald-400 font-mono">
-                                ~${share.cost.toLocaleString('th-TH', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} <span class="text-xs font-normal text-slate-400">฿/เดือน</span>
-                            </div>
-                            <div class="text-xs text-slate-400">
-                                <span class="font-mono text-slate-300">${energy.monthlyKwh}</span> หน่วย (${share.percentage}%)
-                            </div>
+                            ${isEnabled ? `
+                                <div class="text-base font-bold text-emerald-400 font-mono">
+                                    ~${share.cost.toLocaleString('th-TH', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} <span class="text-xs font-normal text-slate-400">฿/เดือน</span>
+                                </div>
+                                <div class="text-xs text-slate-400">
+                                    <span class="font-mono text-slate-300">${energy.monthlyKwh}</span> หน่วย (${share.percentage}%)
+                                </div>
+                            ` : `
+                                <div class="text-sm font-semibold text-slate-500 font-mono">
+                                    0.0 <span class="text-xs font-normal">฿/เดือน (ปิดอยู่)</span>
+                                </div>
+                                <div class="text-[11px] text-amber-400/80">
+                                    ประหยัดไป ~${share.cost.toLocaleString('th-TH', { maximumFractionDigits: 0 })} ฿ (${energy.monthlyKwh} หน่วย)
+                                </div>
+                            `}
                         </div>
 
                         <!-- Action Buttons -->
@@ -309,7 +438,7 @@ export function renderApplianceList(appliances, insightsData, filterCategory = '
 
                 <!-- แถบแสดงสัดส่วนเปอร์เซ็นต์แบบ Progress bar -->
                 <div class="w-full bg-slate-800/60 rounded-full h-1 mt-3 overflow-hidden">
-                    <div class="h-full rounded-full bg-emerald-500/80" style="width: ${Math.min(100, share.percentage)}%"></div>
+                    <div class="h-full rounded-full ${isEnabled ? 'bg-emerald-500/80' : 'bg-slate-700'}" style="width: ${isEnabled ? Math.min(100, share.percentage) : 0}%"></div>
                 </div>
             </div>
         `;
@@ -317,14 +446,16 @@ export function renderApplianceList(appliances, insightsData, filterCategory = '
 
     listContainer.innerHTML = html;
 
-    // ผูก Event ให้ปุ่ม Edit และ Delete
+    // ผูก Event ให้ปุ่ม Toggle, Edit และ Delete
     listContainer.querySelectorAll('button[data-action]').forEach(btn => {
-        btn.addEventListener('click', (e) => {
+        btn.addEventListener('click', () => {
             const action = btn.getAttribute('data-action');
             const id = btn.getAttribute('data-id');
             const targetItem = appliances.find(a => a.id === id);
 
-            if (action === 'edit' && onEditApplianceCallback && targetItem) {
+            if (action === 'toggle' && onToggleApplianceCallback && targetItem) {
+                onToggleApplianceCallback(id);
+            } else if (action === 'edit' && onEditApplianceCallback && targetItem) {
                 onEditApplianceCallback(targetItem);
             } else if (action === 'delete' && onDeleteApplianceCallback && targetItem) {
                 if (confirm(`คุณต้องการลบ "${targetItem.name}" หรือไม่?`)) {

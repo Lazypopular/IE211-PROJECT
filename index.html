@@ -260,6 +260,51 @@
 
             </div>
 
+            <!-- 1.5 Monthly Budget Target & Alert Bar (เป้าหมายงบค่าไฟรายเดือน) -->
+            <div id="budgetTrackerCard" class="glass-panel rounded-2xl p-4 sm:p-5 border border-slate-800 transition-all duration-300">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    
+                    <!-- Left: Title & Current vs Target -->
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-2.5 flex-wrap">
+                            <span class="text-sm font-bold text-slate-100 flex items-center gap-2">
+                                <i class="fa-solid fa-bullseye text-emerald-400"></i>
+                                <span>เป้าหมายควบคุมงบค่าไฟรายเดือน</span>
+                            </span>
+                            <span id="budgetPercentBadge" class="text-xs font-mono font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                0% ของงบ
+                            </span>
+                        </div>
+                        <div id="budgetStatusText" class="text-xs text-slate-400">
+                            กำลังคำนวณสถานะงบประมาณ...
+                        </div>
+                    </div>
+
+                    <!-- Right: Quick Presets & Custom Budget Input -->
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="text-xs text-slate-400 mr-1">ตั้งงบ (บาท/เดือน):</span>
+                        <div class="flex items-center gap-1">
+                            <button type="button" data-budget-preset="1000" class="px-2 py-1 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-emerald-400 text-xs font-mono border border-slate-700/80 transition-colors">1,000</button>
+                            <button type="button" data-budget-preset="1500" class="px-2 py-1 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-emerald-400 text-xs font-mono border border-slate-700/80 transition-colors">1,500</button>
+                            <button type="button" data-budget-preset="2500" class="px-2 py-1 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-emerald-400 text-xs font-mono border border-slate-700/80 transition-colors">2,500</button>
+                        </div>
+                        <div class="relative w-28">
+                            <input type="number" id="budgetTargetInput" min="100" max="100000" step="100" value="1500" class="w-full pl-2.5 pr-7 py-1 bg-slate-900 border border-emerald-500/40 rounded-xl text-xs font-mono text-emerald-300 focus:outline-none focus:border-emerald-400">
+                            <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-500">฿</span>
+                        </div>
+                        <div id="budgetCurrentBillText" class="text-xs font-mono ml-1 hidden sm:block">
+                            0.00 / 1,500 ฿
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="w-full bg-slate-900/90 rounded-full h-2.5 mt-3.5 overflow-hidden border border-slate-800/80 p-0.5">
+                    <div id="budgetProgressBar" class="h-full rounded-full transition-all duration-500 bg-gradient-to-r from-emerald-500 to-teal-400" style="width: 0%"></div>
+                </div>
+            </div>
+
             <!-- 2. Main Dashboard Split Layout -->
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                 

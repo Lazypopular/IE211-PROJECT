@@ -9,6 +9,8 @@ import {
     clearAllAppliances,
     getStoredTariffSettings,
     saveStoredTariffSettings,
+    getStoredBudgetTarget,
+    saveStoredBudgetTarget,
     exportDataAsJSON,
     exportDataAsCSV,
     importDataFromJSON,
@@ -37,6 +39,7 @@ import {
     initUIListeners,
     showToast,
     renderMetricCards,
+    renderBudgetTracker,
     renderApplianceList,
     renderInsightsList
 } from './ui/uiController.js';
@@ -44,6 +47,7 @@ import {
 // Application State
 let appliances = [];
 let tariffSettings = {};
+let budgetTarget = 1500;
 let currentFilter = 'all';
 let currentSearch = '';
 
@@ -53,8 +57,9 @@ let currentSearch = '';
 function refreshApp() {
     const insights = generateEnergyInsights(appliances, tariffSettings);
 
-    // 1. เรนเดอร์การ์ดสรุปตัวเลข
+    // 1. เรนเดอร์การ์ดสรุปตัวเลข และแถบเป้าหมายงบค่าไฟ
     renderMetricCards(insights);
+    renderBudgetTracker(insights, budgetTarget);
 
     // 2. เรนเดอร์กราฟิก Chart.js
     const catCanvas = document.getElementById('categoryDonutChart');
@@ -83,16 +88,37 @@ function handleSaveAppliance(item, isEdit) {
     if (isEdit) {
         const index = appliances.findIndex(a => a.id === item.id);
         if (index !== -1) {
-            appliances[index] = item;
+            // คงสถานะ enabled เดิมไว้
+            const prevEnabled = appliances[index].enabled !== false;
+            appliances[index] = { ...item, enabled: prevEnabled };
             showToast(`แก้ไข "${item.name}" สำเร็จ`, 'success');
         }
     } else {
-        appliances.push(item);
+        appliances.push({ ...item, enabled: true });
         showToast(`เพิ่ม "${item.name}" เรียบร้อยแล้ว`, 'success');
     }
 
     saveStoredAppliances(appliances);
     refreshApp();
+}
+
+/**
+ * สลับสถานะเปิด/ปิดอุปกรณ์ชั่วคราวบนการ์ด (Instant On/Off Toggle)
+ * @param {string} id
+ */
+function handleToggleAppliance(id) {
+    const item = appliances.find(a => a.id === id);
+    if (!item) return;
+
+    item.enabled = item.enabled === false ? true : false;
+    saveStoredAppliances(appliances);
+    refreshApp();
+
+    if (item.enabled) {
+        showToast(`เปิดคำนวณค่าไฟ "${item.name}" แล้ว`, 'success');
+    } else {
+        showToast(`พักการใช้งาน "${item.name}" ชั่วคราว (ไม่นำมาคิดค่าไฟ)`, 'info');
+    }
 }
 
 /**
@@ -116,7 +142,7 @@ function handleClearAllAppliances() {
         return;
     }
 
-    if (confirm('⚠️ คุณต้องการลบรายการเครื่องใช้ไฟฟ้าทั้งหมดในระบบให้เป็น 0 หรือไม่? (สามารถกดปุ่ม "รีเซ็ตตัวอย่าง" เพื่อเรียกข้อมูลกลับมาได้ภายหลัง)')) {
+    if (confirm('⚠️ คุณต้องการลบรายการเครื่องใช้ไฟฟ้าทั้งหมดในระบบให้เป็น 0 หรือไม่? (สามารถกดปุ่ม "โหลดตัวอย่าง" เพื่อเรียกข้อมูลกลับมาได้ภายหลัง)')) {
         appliances = clearAllAppliances();
         refreshApp();
         showToast('ล้างเครื่องใช้ไฟฟ้าทั้งหมดในระบบเรียบร้อยแล้ว', 'info');
@@ -190,6 +216,38 @@ function setupEventListeners() {
 
     const navDashboardBtn = document.getElementById('navDashboardBtn');
     if (navDashboardBtn) navDashboardBtn.addEventListener('click', () => switchView('dashboard'));
+
+    // 0.5 Budget Target Controls (ตั้งงบค่าไฟรายเดือน)
+    const budgetInput = document.getElementById('budgetTargetInput');
+    if (budgetInput) {
+        budgetInput.addEventListener('change', (e) => {
+            const val = parseFloat(e.target.value);
+            if (!isNaN(val) && val >= 100) {
+                budgetTarget = saveStoredBudgetTarget(val);
+                refreshApp();
+                showToast(`ตั้งเป้าหมายงบค่าไฟไว้ที่ ${budgetTarget.toLocaleString()} บาท/เดือน`, 'success');
+            }
+        });
+        budgetInput.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            if (!isNaN(val) && val >= 100) {
+                budgetTarget = saveStoredBudgetTarget(val);
+                const insights = generateEnergyInsights(appliances, tariffSettings);
+                renderBudgetTracker(insights, budgetTarget);
+            }
+        });
+    }
+
+    document.querySelectorAll('[data-budget-preset]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const val = parseFloat(btn.getAttribute('data-budget-preset'));
+            if (!isNaN(val)) {
+                budgetTarget = saveStoredBudgetTarget(val);
+                refreshApp();
+                showToast(`ตั้งเป้าหมายงบค่าไฟไว้ที่ ${budgetTarget.toLocaleString()} บาท/เดือน`, 'success');
+            }
+        });
+    });
 
     // 1. ปุ่มเปิด Modal เพิ่มอุปกรณ์
     const addBtn = document.getElementById('openAddApplianceBtn');
@@ -294,6 +352,7 @@ function setupEventListeners() {
                 await importDataFromJSON(file);
                 appliances = getStoredAppliances();
                 tariffSettings = getStoredTariffSettings();
+                budgetTarget = getStoredBudgetTarget();
                 refreshApp();
                 showToast('นำเข้าข้อมูลสำเร็จแล้ว', 'success');
             } catch (err) {
@@ -342,6 +401,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // โหลดข้อมูลจาก LocalStorage
     appliances = getStoredAppliances();
     tariffSettings = getStoredTariffSettings();
+    budgetTarget = getStoredBudgetTarget();
 
     // เริ่มต้น Module Listeners
     initModalListeners({
@@ -351,7 +411,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initUIListeners({
         onEdit: openEditApplianceModal,
-        onDelete: handleDeleteAppliance
+        onDelete: handleDeleteAppliance,
+        onToggle: handleToggleAppliance
     });
 
     setupEventListeners();
