@@ -167,8 +167,7 @@ function handleSaveTariff(newSettings) {
 function switchView(view) {
     const welcomeSection = document.getElementById('welcomeSection');
     const dashboardSection = document.getElementById('dashboardSection');
-    const navHomeBtn = document.getElementById('navHomeBtn');
-    const navDashboardBtn = document.getElementById('navDashboardBtn');
+    const headerTopControls = document.getElementById('headerTopControls');
 
     if (view === 'dashboard') {
         if (welcomeSection) welcomeSection.classList.add('hidden');
@@ -176,14 +175,7 @@ function switchView(view) {
             dashboardSection.classList.remove('hidden');
             dashboardSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
-        if (navDashboardBtn) {
-            navDashboardBtn.classList.add('bg-emerald-500/20', 'text-emerald-400', 'border-emerald-500/40');
-            navDashboardBtn.classList.remove('text-slate-400', 'border-transparent');
-        }
-        if (navHomeBtn) {
-            navHomeBtn.classList.remove('bg-emerald-500/20', 'text-emerald-400', 'border-emerald-500/40');
-            navHomeBtn.classList.add('text-slate-400', 'border-transparent');
-        }
+        if (headerTopControls) headerTopControls.classList.remove('hidden');
         sessionStorage.setItem('current_page_view', 'dashboard');
     } else {
         if (welcomeSection) {
@@ -191,14 +183,7 @@ function switchView(view) {
             welcomeSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
         if (dashboardSection) dashboardSection.classList.add('hidden');
-        if (navHomeBtn) {
-            navHomeBtn.classList.add('bg-emerald-500/20', 'text-emerald-400', 'border-emerald-500/40');
-            navHomeBtn.classList.remove('text-slate-400', 'border-transparent');
-        }
-        if (navDashboardBtn) {
-            navDashboardBtn.classList.remove('bg-emerald-500/20', 'text-emerald-400', 'border-emerald-500/40');
-            navDashboardBtn.classList.add('text-slate-400', 'border-transparent');
-        }
+        if (headerTopControls) headerTopControls.classList.add('hidden');
         sessionStorage.setItem('current_page_view', 'welcome');
     }
 }
