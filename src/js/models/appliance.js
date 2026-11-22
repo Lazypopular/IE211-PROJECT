@@ -83,7 +83,7 @@ export const APPLIANCE_PRESETS = [
     { name: 'คอมพิวเตอร์ Desktop / Gaming PC', category: 'office', watts: 350, hours: 6, days: 30, note: 'เล่นเกม/ทำงานกราฟิก' },
     { name: 'โน้ตบุ๊กสำหรับทำงาน (Laptop)', category: 'office', watts: 65, hours: 8, days: 26, note: 'Work From Home' },
     { name: 'เครื่องซักผ้าฝาหน้า/บน', category: 'cleaning', watts: 500, hours: 1, days: 15, note: 'ซักผ้า 2-3 ครั้ง/สัปดาห์' },
-    { name: 'เตาไมโครเวฟ (Microwave)', category: 'kitchen', watts: 1000, hours: 0.3, days: 30, note: 'อุ่นอาหารสั้นๆ' },
+    { name: 'เตาไมโครเวฟ (Microwave)', category: 'kitchen', watts: 1000, hours: 0.5, days: 30, note: 'อุ่นอาหารสั้นๆ' },
     { name: 'หม้อหุงข้าวไฟฟ้า', category: 'kitchen', watts: 600, hours: 0.5, days: 30, note: 'หุงข้าววันละ 1 ครั้ง' },
     { name: 'หลอดไฟ LED 9W', category: 'lighting', watts: 9, hours: 6, days: 30, note: 'หลอดประหยัดพลังงาน' },
     { name: 'เตารีดไอน้ำ', category: 'cleaning', watts: 1200, hours: 1, days: 4, note: 'รีดผ้าสัปดาห์ละครั้ง' },
